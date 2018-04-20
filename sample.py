@@ -22,19 +22,23 @@ with open("./input_data/lea_sig.csv", "r", encoding="utf-8") as f_learn_in:
                 
                 
 ##2 パラメータ設定
-i_Unit_size_input=len(l_learn_in[1])                   #次元数(入力ユニット数)
-i_Unit_size_output=4                                   #クラス数(出力ユニット数)
-i_Model_component_size=2                               #コンポーネント数
-    
-
+i_Unit_size_input=len(l_learn_in[1])                    #次元数(入力ユニット数)
+i_Unit_size_output=4                                    #クラス数(出力ユニット数)
+i_Model_component_size=2                                #コンポーネント数
+i_Batch_size=1                                          #1バッチあたりのデータ数
+Mu=0.1
+Epoch=10
 ##3 インスタンス化
-llgmn=LLGMN(i_Unit_size_input,i_Model_component_size,i_Unit_size_output)
-x,weight=llgmn.nonlinear(l_learn_in[0][:])
+llgmn=LLGMN(i_Unit_size_input,i_Model_component_size,i_Unit_size_output,i_Batch_size,Epoch)
     
 ##4 訓練
-unit=llgmn.train(x)
+for Epochnum in range(Epoch):
+    for Datanum in range(len(l_learn_in[:])):
+        llgmn.train(l_learn_in[Datanum][:],l_learn_out[Datanum][:],Mu,Epochnum)
     
-    
+llgmn.error_graph()
+for Datanum in range(len(l_learn_in[:])):
+    llgmn.forward(l_one_data_in)
 ##5 検証
     
     

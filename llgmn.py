@@ -1,18 +1,19 @@
 import numpy
 import math
 import copy
-#from matplotlib import pyplot
+from matplotlib import pyplot
 
 class LLGMN:
     
-    def __init__(self,i_Unit_size_input, i_Model_component_size, i_Unit_size_output):
+    def __init__(self,i_Unit_size_input, i_Model_component_size, i_Unit_size_output, i_Batch_size,Epoch):
         self.i_D=i_Unit_size_input
         self.i_H=int(1+i_Unit_size_input*(i_Unit_size_input+3)/2)
         self.i_M=i_Model_component_size
         self.i_C=i_Unit_size_output
+        self.i_B=i_Batch_size
         self.weight=[[numpy.random.random_sample((self.i_M, self.i_H))] for l in range(1) for c in range(self.i_C)]
-
-    def nonlinear(self, l_one_data_in):
+        self.error=numpy.zeros(Epoch)
+    def __nonlinear(self, l_one_data_in):
         D=self.i_D
         x_pre=numpy.array(l_one_data_in)
         x=numpy.zeros((self.i_H,1))
@@ -25,10 +26,22 @@ class LLGMN:
             for right in range(left,D):
                 x[i,]=x_pre[left]*x_pre[right]
                 i+=1
-        weight=self.weight
-        return x, weight
+        return x
     
-    def train(self, x):
+    def train(self, l_one_data_in, t, Mu, Epochnum):
+        unit=self.forward(l_one_data_in)
+        ###
+        t=numpy.array(t)
+        t.reshape(-1,1)
+        for c in range(self.i_C):
+            self.error[Epochnum]+=1/2*(unit[c][2]["out"]-t[c])**2
+        
+        ###
+        self.__update_weight(Mu,unit,t)
+        #return unit
+        
+    def forward(self, l_one_data_in):
+        x=self.__nonlinear(l_one_data_in)
         unit=self.__unitx(x)
         
         sumexp=0
@@ -42,7 +55,7 @@ class LLGMN:
         #1in-1out
         for c in range(self.i_C):
             layer=1
-            for m in range(unit[c][layer_front]["in"].shape[0]):
+            for m in range(unit[c][layer]["in"].shape[0]):
                 unit[c][layer]["out"][m,]=math.exp(unit[c][layer]["in"][m,])/sumexp
                 
         #1out-2in
@@ -55,8 +68,25 @@ class LLGMN:
         for c in range(self.i_C):
             layer=2
             unit[c][layer]["out"]=unit[c][layer]["in"]
-            
+        
         return unit
+        
+    def __update_weight(self,Mu,unit,t):
+        for c in range(self.i_C):
+            delta=numpy.dot((unit[c][1]["out"]-unit[c][1]["out"]/unit[c][2]["out"]*t[c]),unit[c][0]["out"].T)
+            self.weight[c][0]-=Mu*delta
+
+        
+        # 1-2 誤り改善状況の出力
+    def error_graph(self):
+        print("\n\n\n")
+        print("========================(2)誤り改善状況========================")
+        #pyplot.ylim(0.0, 2.0)
+        pyplot.plot(numpy.arange(0, self.error.shape[0]), self.error)
+        pyplot.show()
+        print("=============================================================")
+    
+    
     def __unitx(self,x):
         units_0layer_in=x
         units_0layer_out=x
